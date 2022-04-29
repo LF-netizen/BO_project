@@ -46,20 +46,21 @@ def min_lines(m, zeros_dependant):
 def matrix_reduction(original_matrix: np.ndarray) -> (np.ndarray, np.ndarray, int):
     cost = 0
     buffor_matrix = copy.deepcopy(original_matrix)
+
     
-    for i in range(len(buffor_matrix)):
-        if not np.any(buffor_matrix[i] == 0):
-            minimum = np.min(buffor_matrix[i])
+    for row in buff_matrix:
+        if not np.any(row== 0):
+            minimum = np.min(row)
             cost += minimum
-            buffor_matrix[i] = buffor_matrix[i] - minimum
+            row = row - minimum
     
     buffor_matrix = buffor_matrix.T
     
-    for j in range(len(buffor_matrix)):
-        if not np.any(buffor_matrix[j] == 0):
-            minimum = np.min(buffor_matrix[j])
+    for row in buff_matrix:
+        if not np.any(row== 0):
+            minimum = np.min(row)
             cost += minimum
-            buffor_matrix[j] = buffor_matrix[j] - minimum
+            row = row - minimum
             
     buffor_matrix = buffor_matrix.T
     
