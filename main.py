@@ -10,7 +10,7 @@ def get_independent_zeros(matrix_after_reduction: np.ndarray) -> Optional[List[T
     """
 
     points: List[Tuple[int, int]] = []
-    _m: np.ndarray = matrix_after_reduction.copy()
+    _m: np.ndarray = copy.deepcopy(matrix_after_reduction)
 
     for _ in range(_m.shape[0]):
         # zlicz zera w każdym wierszu
@@ -52,7 +52,7 @@ def get_independent_zeros(matrix_after_reduction: np.ndarray) -> Optional[List[T
         if not zero_found:
             break
 
-    return points if len(points) == _m.shape[0] else None
+    return points
 
 
 def min_lines(m, zeros_dependant):
@@ -64,10 +64,10 @@ def min_lines(m, zeros_dependant):
     marked_cols = set()
     for i, j in zeros_dependant:
         zeros[i, j] = -1
-    
+
     for idx, row in enumerate(zeros):
         for el in row:
-            if el == -1: # zero niezależne
+            if el == -1:  # zero niezależne
                 break
         else:
             marked_rows.add(idx)
@@ -88,10 +88,10 @@ def min_lines(m, zeros_dependant):
                 if zeros[row, col] == -1 and col in marked_cols and row not in marked_rows:
                     marked_rows.add(row)
                     changes = True
-        
+
         if not changes:
             break
-    
+
     all_rows = set([row_idx for row_idx in range(X)])
 
     return all_rows.difference(marked_rows), marked_cols
@@ -101,24 +101,60 @@ def matrix_reduction(original_matrix: np.ndarray) -> (np.ndarray, np.ndarray, in
     cost = 0
     buffor_matrix = copy.deepcopy(original_matrix)
 
-    
-    for row in buff_matrix:
-        if not np.any(row== 0):
+    for row in buffor_matrix:
+        if not np.any(row == 0):
             minimum = np.min(row)
             cost += minimum
-            row = row - minimum
-    
+            row -= minimum
+
     buffor_matrix = buffor_matrix.T
-    
-    for row in buff_matrix:
-        if not np.any(row== 0):
+
+    for row in buffor_matrix:
+        if not np.any(row == 0):
             minimum = np.min(row)
             cost += minimum
-            row = row - minimum
-            
+            row -= minimum
+
     buffor_matrix = buffor_matrix.T
-    
-    return original_matrix, buffor_matrix, cost
+
+    return buffor_matrix, cost
+
+
+def shift_zeros(matrix_after_reduction: np.ndarray, marked_rows: set, marked_cols: set):
+    X, _ = matrix_after_reduction.shape
+    cost = 0
+    #tworze macierz 0 i 1 gdzie 0 to linia
+    zeros = np.ones((X,X)).astype(int)
+    for row in marked_rows:
+        zeros[row,:] = 0
+    for col in marked_cols:
+        zeros[:,col] = 0
+
+    buffor_matrix = np.multiply(zeros, matrix_after_reduction)
+    # szukam wartości minimalnej w macierzy
+    minimal = np.min(buffor_matrix[np.nonzero(buffor_matrix)])
+    # szukam punktów przecięcia linii
+    crossed_points = []
+    if len(marked_rows) == 0 or len(marked_cols) == 0:
+        pass
+    else:
+        for x in marked_rows:
+            for y in marked_cols:
+                crossed_points.append((x, y))
+
+    # odejmuję wartość minimalną od odpowiednich elementów
+    for row in range(X):
+        for col in range(X):
+            if zeros[row, col]-1 == 0:
+                matrix_after_reduction[row, col] -= minimal
+
+    # dodaje wartość minimalną do odpowiednich elementów
+    for row, col in crossed_points:
+        matrix_after_reduction[row, col] += minimal
+
+    cost = len(crossed_points)*minimal
+
+    return matrix_after_reduction, cost
 
 
 def main():
@@ -168,9 +204,24 @@ def main():
         print(get_independent_zeros(m12))
         print(get_independent_zeros(m13))
 
-    matrix = np.random.randint(10, size=(6, 6))
+    # TEST_get_independent_zeros()
 
-    TEST_get_independent_zeros()
+    matrix = np.random.randint(10, size=(6, 6))
+    print("Macierz oryginalna: \n", matrix)
+    reduced_matrix, cost = matrix_reduction(matrix)
+    print("Macierz zredukowana: \n", reduced_matrix)
+    for x in range(40):
+        result = get_independent_zeros(reduced_matrix)
+        print(result)
+        if len(result) != reduced_matrix.shape[0]:
+            reduced_matrix, cost_buff = shift_zeros(reduced_matrix, *min_lines(reduced_matrix, result))
+            cost += cost_buff
+            print("Zamiana zer macierzy: \n", reduced_matrix)
+        elif len(result) == reduced_matrix.shape[0]:
+            print("Rozwiązanie końcowe: ", result, '\nOptymalny koszt przydziału: ', cost)
+            break
+        else:
+            print("Coś się zjebało")
 
 
 if __name__ == '__main__':
